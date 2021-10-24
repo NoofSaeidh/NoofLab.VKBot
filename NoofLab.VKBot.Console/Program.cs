@@ -22,11 +22,12 @@ namespace NoofLab.VKBot.Console
         {
             var builder = Host.CreateDefaultBuilder(args);
 
+            //builder.ConfigureLogging(ctx => ctx.ClearProviders().AddJsonConsole());
+
             builder.ConfigureServices(ServiceRegistration.Register);
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton<Config>(provider =>
-                    provider
+                services.AddSingleton<Config>(provider => provider
                         .GetService<IConfiguration>()
                         .GetSection("Config")
                         .Get<Config>());

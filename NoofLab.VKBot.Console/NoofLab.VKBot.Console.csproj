@@ -16,4 +16,10 @@
     <ProjectReference Include="..\NoofLab.VKBot.Core\NoofLab.VKBot.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

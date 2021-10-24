@@ -47,6 +47,7 @@ namespace NoofLab.VKBot.Core
             try
             {
                 await _api.AuthorizeAsync(new ApiAuthParams { AccessToken = _config.ApiKey });
+                _logger.LogTrace("Token: {Token}", _api.Token);
             }
             catch (Exception e)
             {
