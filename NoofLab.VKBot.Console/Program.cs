@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,18 +15,16 @@ namespace NoofLab.VKBot.Console
     {
         static Task Main(string[] args)
         {
-            using IHost host = CreateHostBuilder(args).Build();
-
-            return host.RunAsync();
+            return CreateHostBuilder(args).RunConsoleAsync();
         }
 
         static IHostBuilder CreateHostBuilder(string[] args)
         {
             var builder = Host.CreateDefaultBuilder(args);
 
+            builder.ConfigureServices(ServiceRegistration.Register);
             builder.ConfigureServices(services =>
             {
-                services.AddHostedService<VkService>();
                 services.AddSingleton<Config>(provider =>
                     provider
                         .GetService<IConfiguration>()
