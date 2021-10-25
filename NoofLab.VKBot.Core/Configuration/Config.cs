@@ -8,6 +8,6 @@ namespace NoofLab.VKBot.Core.Configuration
 {
     public class Config
     {
-        public string ApiKey { get; init; }
+        public string AccessToken { get; init; }
     }
 }

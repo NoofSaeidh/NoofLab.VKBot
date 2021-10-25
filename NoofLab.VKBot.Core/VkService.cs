@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using NoofLab.VKBot.Core.Configuration;
 using VkNet;
 using VkNet.Model;
+using VkNet.Model.RequestParams;
 
 namespace NoofLab.VKBot.Core
 {
@@ -46,7 +47,7 @@ namespace NoofLab.VKBot.Core
         {
             try
             {
-                await _api.AuthorizeAsync(new ApiAuthParams { AccessToken = _config.ApiKey });
+                await _api.AuthorizeAsync(new ApiAuthParams { AccessToken = _config.AccessToken });
                 _logger.LogTrace("Token: {Token}", _api.Token);
             }
             catch (Exception e)
@@ -58,6 +59,7 @@ namespace NoofLab.VKBot.Core
 
         private async Task Test()
         {
+            var res = await _api.Friends.GetListsAsync();
         }
 
         public override void Dispose()
