@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NoofLab.VKBot.Core.Configuration;
+using NoofLab.VKBot.Core.Exceptions;
 using VkNet;
+using VkNet.Exception;
 using VkNet.Model;
 using VkNet.Model.RequestParams;
 
@@ -19,6 +21,8 @@ namespace NoofLab.VKBot.Core
         private readonly VkApi _api;
         private readonly ILogger<VkService> _logger;
         private readonly IHostApplicationLifetime _applicationLifetime;
+        private const int TimeOutMilliseconds = 100; // todo: research
+        private const int LongPollApiVersion = 2;
 
         public VkService(Config config, VkApi api, ILogger<VkService> logger, IHostApplicationLifetime applicationLifetime)
         {
@@ -26,24 +30,44 @@ namespace NoofLab.VKBot.Core
             _api = api;
             _logger = logger;
             _applicationLifetime = applicationLifetime;
-            //_applicationLifetime.ApplicationStarted.Register(() => { });
-            //_applicationLifetime.ApplicationStopped.Register(() => { });
-            //_applicationLifetime.ApplicationStopping.Register(() => { });
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
             await Authorize();
-            await Test();
+            await BackgroundWork(cancellationToken);
         }
 
+        private async Task BackgroundWork(CancellationToken cancellationToken)
+        {
+            var settings = await GetLongPollingServer();
+            ulong? newPts = null;
 
-        //public override Task StopAsync(CancellationToken cancellationToken)
-        //{
-        //    return Task.CompletedTask;
-        //}
+            while (cancellationToken.IsCancellationRequested is false)
+            {
+                try
+                {
+                    var res = await _api.Messages.GetLongPollHistoryAsync(
+                        new MessagesGetLongPollHistoryParams
+                        {
+                            Ts = ulong.Parse(settings.Ts),
+                            Pts = newPts ?? settings.Pts,
+                            LpVersion = LongPollApiVersion,
+                        }
+                    );
 
-        public async Task Authorize()
+                    newPts = res.NewPts;
+                }
+                catch (Exception e)
+                {
+                    _logger.LogCritical(e, "NOT HANDLED EXCEPTION");
+                }
+
+                await Task.Delay(TimeOutMilliseconds, cancellationToken);
+            }
+        }
+
+        private async Task Authorize()
         {
             try
             {
@@ -53,18 +77,35 @@ namespace NoofLab.VKBot.Core
             catch (Exception e)
             {
                 _logger.LogCritical(e, "Error during authorization");
-                _applicationLifetime.StopApplication();
             }
         }
 
-        private async Task Test()
+        private async Task<LongPollServerResponse> GetLongPollingServer()
         {
-            var res = await _api.Friends.GetListsAsync();
+            try
+            {
+                return await _api.Messages.GetLongPollServerAsync(needPts: true, lpVersion: LongPollApiVersion);
+            }
+            catch (VkApiException e)
+            {
+                var message = e.Message switch
+                {
+                    VkExceptionMessages.GroupMessagesDisabled =>
+                        "The bot is not properly configured. Turn on group messages",
+                    _ => "Unexpected exception during configuring long polling",
+                };
+                _logger.LogCritical(e, message);
+                StopApplication();
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogCritical(e, "Unexpected exception during configuring long polling");
+                StopApplication();
+                throw;
+            }
         }
 
-        public override void Dispose()
-        {
-            _api?.Dispose();
-        }
+        private void StopApplication() => _applicationLifetime.StopApplication();
     }
 }
