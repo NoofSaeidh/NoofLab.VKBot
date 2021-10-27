@@ -9,7 +9,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NoofLab.VKBot.Core.Configuration;
 using NoofLab.VKBot.Core.Exceptions;
-using NoofLab.VKBot.Core.Extensions;
+using NoofLab.VKBot.Core.Extensions.Logger;
+using NoofLab.VKBot.Core.Extensions.Validation;
 using NoofLab.VKBot.Core.Messages;
 using VkNet;
 using VkNet.Enums.SafetyEnums;
@@ -29,7 +30,6 @@ namespace NoofLab.VKBot.Core
         private readonly IMessageParser _messageParser;
 
         private const int TimeOutMilliseconds = 100; // todo: research
-        private const int LongPollApiVersion = 2;
 
         public VkService(Config config, VkApi api, ILogger<VkService> logger, IHostApplicationLifetime applicationLifetime, IMessageParser messageParser)
         {
@@ -42,8 +42,25 @@ namespace NoofLab.VKBot.Core
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
+            if (TryValidate() is false)
+                return;
             await Authorize();
             await BackgroundWork(cancellationToken);
+        }
+
+        private bool TryValidate()
+        {
+            try
+            {
+                _config.Validate();
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.LogCritical(e, "Config is not valid");
+                StopApplication();
+                return false;
+            }
         }
 
         private async Task BackgroundWork(CancellationToken cancellationToken)
@@ -71,6 +88,11 @@ namespace NoofLab.VKBot.Core
                 {
                     newTs = e.Ts;
                     _logger.LogInformation(e, "Timestamp outdated");
+                }
+                catch (LongPollKeyExpiredException e)
+                {
+                    _logger.LogInformation(e, "Key expired");
+                    settings = await GetLongPollingServer();
                 }
                 catch (Exception e)
                 {

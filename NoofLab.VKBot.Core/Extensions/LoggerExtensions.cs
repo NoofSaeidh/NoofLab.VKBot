@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace NoofLab.VKBot.Core.Extensions
+namespace NoofLab.VKBot.Core.Extensions.Logger
 {
     public static class LoggerExtensions
     {
