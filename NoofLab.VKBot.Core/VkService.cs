@@ -12,8 +12,10 @@ using NoofLab.VKBot.Core.Exceptions;
 using NoofLab.VKBot.Core.Extensions;
 using NoofLab.VKBot.Core.Messages;
 using VkNet;
+using VkNet.Enums.SafetyEnums;
 using VkNet.Exception;
 using VkNet.Model;
+using VkNet.Model.GroupUpdate;
 using VkNet.Model.RequestParams;
 
 namespace NoofLab.VKBot.Core
@@ -47,44 +49,27 @@ namespace NoofLab.VKBot.Core
         private async Task BackgroundWork(CancellationToken cancellationToken)
         {
             var settings = await GetLongPollingServer();
-            ulong? newPts = null;
+            string newTs = null;
 
             while (cancellationToken.IsCancellationRequested is false)
             {
                 try
                 {
-                    //var res = await _api.Messages.GetLongPollHistoryAsync(
-                    //    new MessagesGetLongPollHistoryParams
-                    //    {
-                    //        Ts = ulong.Parse(settings.Ts),
-                    //        Pts = newPts ?? settings.Pts,
-                    //        LpVersion = LongPollApiVersion,
-                    //    }
-                    //);
-
-                    //newPts = res.NewPts;
-
-                    //await ProcessUpdates(res.Messages);
-
-                    var res2 = await _api.Groups.GetBotsLongPollHistoryAsync(
+                    var res = await _api.Groups.GetBotsLongPollHistoryAsync(
                         new BotsLongPollHistoryParams
                         {
                             Key = settings.Key,
-                            Server = $"https://{settings.Server}",
-                            Ts = (newPts ?? settings.Pts).ToString(),
+                            Server = settings.Server,
+                            Ts = newTs ?? settings.Pts.ToString(),
                             Wait = 1,
                         });
 
-                    newPts = ulong.Parse(res2.Ts);
-                    if (res2.Updates.Any())
-                    {
-
-                    }
+                    newTs = res.Ts;
+                    await ProcessUpdates(res.Updates);
                 }
                 catch (LongPollOutdateException e)
                 {
-                    if (ulong.TryParse(e.Ts, out var newts))
-                        newPts = newts;
+                    newTs = e.Ts;
                     _logger.LogInformation(e, "Timestamp outdated");
                 }
                 catch (Exception e)
@@ -96,14 +81,21 @@ namespace NoofLab.VKBot.Core
             }
         }
 
-        private async Task ProcessUpdates(IReadOnlyCollection<Message> messages)
+        private async Task ProcessUpdates(IEnumerable<GroupUpdate> updates)
         {
-            foreach (var message in messages)
+            foreach (var update in updates)
             {
-                if (message.Out is true || !_messageParser.TryParse(message.Text, out var instruction))
+                if (update.Type != GroupUpdateType.MessageNew)
                     continue;
 
-                if(instruction.Reply)
+                var message = update.MessageNew?.Message;
+                if (message == null
+                    || message.Out != false
+                    || !_messageParser.TryParse(message, out var instruction))
+                    continue;
+
+
+                if (instruction.Reply)
                 {
                     try
                     {
@@ -139,7 +131,7 @@ namespace NoofLab.VKBot.Core
         {
             try
             {
-                return await _api.Messages.GetLongPollServerAsync(needPts: true, lpVersion: LongPollApiVersion);
+                return await _api.Groups.GetLongPollServerAsync(_config.GroupId);
             }
             catch (VkApiException e)
             {

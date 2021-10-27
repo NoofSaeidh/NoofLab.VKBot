@@ -9,5 +9,6 @@ namespace NoofLab.VKBot.Core.Configuration
     public class Config
     {
         public string AccessToken { get; init; }
+        public ulong GroupId { get; init; }
     }
 }
