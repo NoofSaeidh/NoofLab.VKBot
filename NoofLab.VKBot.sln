@@ -11,7 +11,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Items", "Items", "{A3DE0FBE
 		notes.md = notes.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoofLab.VKBot.Console", "NoofLab.VKBot.Console\NoofLab.VKBot.Console.csproj", "{D8492DFE-F512-4483-9DB2-9C9A0B273C20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NoofLab.VKBot.Console", "NoofLab.VKBot.Console\NoofLab.VKBot.Console.csproj", "{D8492DFE-F512-4483-9DB2-9C9A0B273C20}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VkApi", "VkApi", "{8D653D54-A030-4BB6-A50E-FA7AADE744C8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VkNet", "vk\VkNet\VkNet.csproj", "{1FE44CD4-99CD-4994-B342-48A1989079BA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VkNet.Core.Abstractions", "vk\VkNet.Core.Abstractions\VkNet.Core.Abstractions.csproj", "{0A5A6C8C-AB95-4996-8168-1C9C2A59F530}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VkNet.Tests", "vk\VkNet.Tests\VkNet.Tests.csproj", "{849EDDF5-2AE2-4ABD-9C56-9DE3F99AD3F6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,9 +35,26 @@ Global
 		{D8492DFE-F512-4483-9DB2-9C9A0B273C20}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8492DFE-F512-4483-9DB2-9C9A0B273C20}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8492DFE-F512-4483-9DB2-9C9A0B273C20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FE44CD4-99CD-4994-B342-48A1989079BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FE44CD4-99CD-4994-B342-48A1989079BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FE44CD4-99CD-4994-B342-48A1989079BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FE44CD4-99CD-4994-B342-48A1989079BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A5A6C8C-AB95-4996-8168-1C9C2A59F530}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A5A6C8C-AB95-4996-8168-1C9C2A59F530}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A5A6C8C-AB95-4996-8168-1C9C2A59F530}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A5A6C8C-AB95-4996-8168-1C9C2A59F530}.Release|Any CPU.Build.0 = Release|Any CPU
+		{849EDDF5-2AE2-4ABD-9C56-9DE3F99AD3F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{849EDDF5-2AE2-4ABD-9C56-9DE3F99AD3F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{849EDDF5-2AE2-4ABD-9C56-9DE3F99AD3F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{849EDDF5-2AE2-4ABD-9C56-9DE3F99AD3F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1FE44CD4-99CD-4994-B342-48A1989079BA} = {8D653D54-A030-4BB6-A50E-FA7AADE744C8}
+		{0A5A6C8C-AB95-4996-8168-1C9C2A59F530} = {8D653D54-A030-4BB6-A50E-FA7AADE744C8}
+		{849EDDF5-2AE2-4ABD-9C56-9DE3F99AD3F6} = {8D653D54-A030-4BB6-A50E-FA7AADE744C8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ACBCA3A8-9129-4832-8FDD-D7A8727335D0}
