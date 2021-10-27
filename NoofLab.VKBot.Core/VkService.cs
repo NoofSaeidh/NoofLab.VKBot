@@ -66,7 +66,7 @@ namespace NoofLab.VKBot.Core
         private async Task BackgroundWork(CancellationToken cancellationToken)
         {
             var settings = await GetLongPollingServer();
-            string newTs = null;
+            string newTs = settings.Ts;
 
             while (cancellationToken.IsCancellationRequested is false)
             {
@@ -77,7 +77,7 @@ namespace NoofLab.VKBot.Core
                         {
                             Key = settings.Key,
                             Server = settings.Server,
-                            Ts = newTs ?? settings.Pts.ToString(),
+                            Ts = newTs,
                             Wait = 1,
                         });
 
