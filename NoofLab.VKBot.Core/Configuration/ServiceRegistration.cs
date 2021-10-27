@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NoofLab.VKBot.Core.Messages;
 using VkNet;
 
 namespace NoofLab.VKBot.Core.Configuration
@@ -16,6 +17,7 @@ namespace NoofLab.VKBot.Core.Configuration
             services.AddHostedService<VkService>();
             var api = new VkApi(services);
             services.AddSingleton(_ => api);
+            services.AddSingleton<IMessageParser, MessageParser>();
         }
     }
 }

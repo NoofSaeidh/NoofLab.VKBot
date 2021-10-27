@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -8,6 +9,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NoofLab.VKBot.Core.Configuration;
 using NoofLab.VKBot.Core.Exceptions;
+using NoofLab.VKBot.Core.Extensions;
+using NoofLab.VKBot.Core.Messages;
 using VkNet;
 using VkNet.Exception;
 using VkNet.Model;
@@ -21,15 +24,18 @@ namespace NoofLab.VKBot.Core
         private readonly VkApi _api;
         private readonly ILogger<VkService> _logger;
         private readonly IHostApplicationLifetime _applicationLifetime;
+        private readonly IMessageParser _messageParser;
+
         private const int TimeOutMilliseconds = 100; // todo: research
         private const int LongPollApiVersion = 2;
 
-        public VkService(Config config, VkApi api, ILogger<VkService> logger, IHostApplicationLifetime applicationLifetime)
+        public VkService(Config config, VkApi api, ILogger<VkService> logger, IHostApplicationLifetime applicationLifetime, IMessageParser messageParser)
         {
             _config = config;
             _api = api;
             _logger = logger;
             _applicationLifetime = applicationLifetime;
+            _messageParser = messageParser;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -47,23 +53,72 @@ namespace NoofLab.VKBot.Core
             {
                 try
                 {
-                    var res = await _api.Messages.GetLongPollHistoryAsync(
-                        new MessagesGetLongPollHistoryParams
-                        {
-                            Ts = ulong.Parse(settings.Ts),
-                            Pts = newPts ?? settings.Pts,
-                            LpVersion = LongPollApiVersion,
-                        }
-                    );
+                    //var res = await _api.Messages.GetLongPollHistoryAsync(
+                    //    new MessagesGetLongPollHistoryParams
+                    //    {
+                    //        Ts = ulong.Parse(settings.Ts),
+                    //        Pts = newPts ?? settings.Pts,
+                    //        LpVersion = LongPollApiVersion,
+                    //    }
+                    //);
 
-                    newPts = res.NewPts;
+                    //newPts = res.NewPts;
+
+                    //await ProcessUpdates(res.Messages);
+
+                    var res2 = await _api.Groups.GetBotsLongPollHistoryAsync(
+                        new BotsLongPollHistoryParams
+                        {
+                            Key = settings.Key,
+                            Server = $"https://{settings.Server}",
+                            Ts = (newPts ?? settings.Pts).ToString(),
+                            Wait = 1,
+                        });
+
+                    newPts = ulong.Parse(res2.Ts);
+                    if (res2.Updates.Any())
+                    {
+
+                    }
+                }
+                catch (LongPollOutdateException e)
+                {
+                    if (ulong.TryParse(e.Ts, out var newts))
+                        newPts = newts;
+                    _logger.LogInformation(e, "Timestamp outdated");
                 }
                 catch (Exception e)
                 {
-                    _logger.LogCritical(e, "NOT HANDLED EXCEPTION");
+                    _logger.LogNotHandledException(e);
                 }
 
                 await Task.Delay(TimeOutMilliseconds, cancellationToken);
+            }
+        }
+
+        private async Task ProcessUpdates(IReadOnlyCollection<Message> messages)
+        {
+            foreach (var message in messages)
+            {
+                if (message.Out is true || !_messageParser.TryParse(message.Text, out var instruction))
+                    continue;
+
+                if(instruction.Reply)
+                {
+                    try
+                    {
+                        await _api.Messages.SendAsync(new MessagesSendParams
+                        {
+                            Message = "I can reply!",
+                            PeerId = message.PeerId,
+                            RandomId = DateTime.UtcNow.Ticks,
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogNotHandledException(e);
+                    }
+                }
             }
         }
 
