@@ -7,8 +7,8 @@ using VkNet.Model;
 
 namespace NoofLab.VKBot.Core.Messages
 {
-    public interface IMessageParser
+    public /*abstract*/ record UserRequest(long? PeerId)
     {
-        bool TryParse(Message message, out Instruction instruction);
+
     }
 }

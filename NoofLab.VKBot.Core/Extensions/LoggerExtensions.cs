@@ -10,7 +10,7 @@ namespace NoofLab.VKBot.Core.Extensions.Logger
 {
     public static class LoggerExtensions
     {
-        public static void LogNotHandledException(this ILogger logger, Exception e,
+        public static void LogUnhandledException(this ILogger logger, Exception e,
             [CallerMemberName] string memberName = "",
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)

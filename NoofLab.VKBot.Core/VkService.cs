@@ -2,13 +2,16 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NoofLab.VKBot.Core.Configuration;
 using NoofLab.VKBot.Core.Exceptions;
+using NoofLab.VKBot.Core.Extensions.Json;
 using NoofLab.VKBot.Core.Extensions.Logger;
 using NoofLab.VKBot.Core.Extensions.Validation;
 using NoofLab.VKBot.Core.Messages;
@@ -17,6 +20,7 @@ using VkNet.Enums.SafetyEnums;
 using VkNet.Exception;
 using VkNet.Model;
 using VkNet.Model.GroupUpdate;
+using VkNet.Model.Keyboard;
 using VkNet.Model.RequestParams;
 
 namespace NoofLab.VKBot.Core
@@ -27,17 +31,25 @@ namespace NoofLab.VKBot.Core
         private readonly VkApi _api;
         private readonly ILogger<VkService> _logger;
         private readonly IHostApplicationLifetime _applicationLifetime;
-        private readonly IMessageParser _messageParser;
+        private readonly IRequestParser _requestParser;
+        private readonly IResponseBuilder _responseBuilder;
 
         private const int TimeOutMilliseconds = 100; // todo: research
 
-        public VkService(Config config, VkApi api, ILogger<VkService> logger, IHostApplicationLifetime applicationLifetime, IMessageParser messageParser)
+        public VkService(
+            Config config,
+            VkApi api,
+            ILogger<VkService> logger,
+            IHostApplicationLifetime applicationLifetime,
+            IRequestParser requestParser,
+            IResponseBuilder responseBuilder)
         {
             _config = config;
             _api = api;
             _logger = logger;
             _applicationLifetime = applicationLifetime;
-            _messageParser = messageParser;
+            _requestParser = requestParser;
+            _responseBuilder = responseBuilder;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -96,7 +108,7 @@ namespace NoofLab.VKBot.Core
                 }
                 catch (Exception e)
                 {
-                    _logger.LogNotHandledException(e);
+                    _logger.LogUnhandledException(e);
                 }
 
                 await Task.Delay(TimeOutMilliseconds, cancellationToken);
@@ -107,32 +119,48 @@ namespace NoofLab.VKBot.Core
         {
             foreach (var update in updates)
             {
-                if (update.Type != GroupUpdateType.MessageNew)
-                    continue;
-
-                var message = update.MessageNew?.Message;
-                if (message == null
-                    || message.Out != false
-                    || !_messageParser.TryParse(message, out var instruction))
-                    continue;
-
-
-                if (instruction.Reply)
+                if (update.Type == GroupUpdateType.MessageNew)
                 {
-                    try
-                    {
-                        await _api.Messages.SendAsync(new MessagesSendParams
-                        {
-                            Message = "I can reply!",
-                            PeerId = message.PeerId,
-                            RandomId = DateTime.UtcNow.Ticks,
-                        });
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogNotHandledException(e);
-                    }
+                    var request = _requestParser.TryParseUserRequest(update.MessageNew?.Message);
+                    if (request == null)
+                        continue;
+
+                    var response = _responseBuilder.BuildResponse(request);
+                    // todo: check response
+                    await InvokeUnhandled(_api.Messages.SendAsync(response));
                 }
+
+                else if (update.Type == GroupUpdateType.MessageEvent)
+                {
+                    var request = _requestParser.TryParseCallbackRequest(update.MessageEvent);
+                    if (request == null)
+                        continue;
+
+                    var response = _responseBuilder.BuildResponse(request);
+                    // todo: check response
+                    await InvokeUnhandled(_api.Messages.SendMessageEventAnswerAsync(
+                        request.EventId, request.UserId,
+                        request.PeerId, response));
+                }
+            }
+        }
+
+        private async Task InvokeUnhandled(Task task, bool throwOnException = false,
+            [CallerMemberName] string memberName = "",
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception e)
+            {
+                // ReSharper disable ExplicitCallerInfoArgument
+                _logger.LogUnhandledException(e, memberName, sourceFilePath, sourceLineNumber);
+                // ReSharper restore ExplicitCallerInfoArgument
+                if (throwOnException)
+                    throw;
             }
         }
 
@@ -141,7 +169,7 @@ namespace NoofLab.VKBot.Core
             try
             {
                 await _api.AuthorizeAsync(new ApiAuthParams { AccessToken = _config.AccessToken });
-                _logger.LogTrace("Token: {Token}", _api.Token);
+                //_logger.LogTrace("Token: {Token}", _api.Token);
             }
             catch (Exception e)
             {

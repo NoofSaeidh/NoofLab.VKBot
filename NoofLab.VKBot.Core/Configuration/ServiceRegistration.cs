@@ -11,7 +11,8 @@ namespace NoofLab.VKBot.Core.Configuration
             services.AddHostedService<VkService>();
             var api = new VkApi(services);
             services.AddSingleton(_ => api);
-            services.AddSingleton<IMessageParser, MessageParser>();
+            services.AddSingleton<IRequestParser, RequestParser>();
+            services.AddSingleton<IResponseBuilder, ResponseBuilder>();
         }
     }
 }
