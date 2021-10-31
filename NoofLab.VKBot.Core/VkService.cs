@@ -16,6 +16,7 @@ using NoofLab.VKBot.Core.Extensions.Logger;
 using NoofLab.VKBot.Core.Extensions.Validation;
 using NoofLab.VKBot.Core.Messages;
 using VkNet;
+using VkNet.Enums.Filters;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Exception;
 using VkNet.Model;
@@ -33,6 +34,8 @@ namespace NoofLab.VKBot.Core
         private readonly IHostApplicationLifetime _applicationLifetime;
         private readonly IRequestParser _requestParser;
         private readonly IResponseBuilder _responseBuilder;
+
+        private VkValues _values;
 
         private const int TimeOutMilliseconds = 100; // todo: research
 
@@ -54,24 +57,38 @@ namespace NoofLab.VKBot.Core
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            if (TryValidate() is false)
-                return;
-            await Authorize();
-            await BackgroundWork(cancellationToken);
+            try
+            {
+                Validate();
+                await Authorize();
+                await InitializeValues();
+                await BackgroundWork(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                _logger.LogCritical(e, "Error prevents Vk Bot execution. Application will be stopped.");
+                _applicationLifetime.StopApplication();
+            }
         }
 
-        private bool TryValidate()
+        private async Task InitializeValues()
+        {
+            // ReSharper disable once PossibleInvalidOperationException
+            var userId = _api.UserId.Value;
+            //"[club208214573|Noof Bot]"
+            //var res = await InvokeUnhandled(_api.Friends.GetAsync(new FriendsGetParams { }));
+        }
+
+        private void Validate()
         {
             try
             {
                 _config.Validate();
-                return true;
             }
             catch (Exception e)
             {
                 _logger.LogCritical(e, "Config is not valid");
-                StopApplication();
-                return false;
+                throw;
             }
         }
 
@@ -150,9 +167,28 @@ namespace NoofLab.VKBot.Core
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
         {
+            // ReSharper disable ExplicitCallerInfoArgument
+            await InvokeUnhandled(
+                Task.Run(async () =>
+                {
+                    await task;
+                    return true;
+                }),
+                throwOnException,
+                memberName,
+                sourceFilePath,
+                sourceLineNumber);
+                // ReSharper restore ExplicitCallerInfoArgument
+        }
+
+        private async Task<TResult> InvokeUnhandled<TResult>(Task<TResult> task, bool throwOnException = false,
+            [CallerMemberName] string memberName = "",
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerLineNumber] int sourceLineNumber = 0)
+        {
             try
             {
-                await task;
+                return await task;
             }
             catch (Exception e)
             {
@@ -161,6 +197,7 @@ namespace NoofLab.VKBot.Core
                 // ReSharper restore ExplicitCallerInfoArgument
                 if (throwOnException)
                     throw;
+                return default;
             }
         }
 
@@ -174,6 +211,7 @@ namespace NoofLab.VKBot.Core
             catch (Exception e)
             {
                 _logger.LogCritical(e, "Error during authorization");
+                throw;
             }
         }
 
@@ -192,17 +230,13 @@ namespace NoofLab.VKBot.Core
                     _ => "Unexpected exception during configuring long polling",
                 };
                 _logger.LogCritical(e, message);
-                StopApplication();
                 throw;
             }
             catch (Exception e)
             {
                 _logger.LogCritical(e, "Unexpected exception during configuring long polling");
-                StopApplication();
                 throw;
             }
         }
-
-        private void StopApplication() => _applicationLifetime.StopApplication();
     }
 }
