@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using NoofLab.VKBot.Core.Commands;
 using NoofLab.VKBot.Core.Extensions.Json;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model;
@@ -17,42 +18,23 @@ namespace NoofLab.VKBot.Core.Messages
 
     public class ResponseBuilder : IResponseBuilder
     {
+        private readonly IMessagesProvider _messages;
+
+        public ResponseBuilder(IMessagesProvider messages)
+        {
+            _messages = messages;
+        }
+
         public MessagesSendParams BuildResponse(UserRequest request)
         {
             return new MessagesSendParams
             {
-                Message = "I can reply!",
                 PeerId = request.PeerId,
                 RandomId = DateTime.UtcNow.Ticks,
-                Keyboard = new MessageKeyboard
+                Message = request.Command switch
                 {
-                    Inline = true,
-                    Buttons = new[]
-                    {
-                        new[]
-                        {
-                            new MessageKeyboardButton
-                            {
-                                Color = KeyboardButtonColor.Positive,
-                                Action = new MessageKeyboardButtonAction
-                                {
-                                    Type = KeyboardButtonActionType.Callback,
-                                    Label = "Click It",
-                                    Payload = new { button = "a1" }.ToJson(),
-                                },
-                            },
-                            new MessageKeyboardButton
-                            {
-                                Color = KeyboardButtonColor.Default,
-                                Action = new MessageKeyboardButtonAction
-                                {
-                                    Type = KeyboardButtonActionType.Callback,
-                                    Label = "Don't click it",
-                                    Payload = new { button = "a2" }.ToJson(),
-                                },
-                            },
-                        }
-                    }
+                    ReminderCommand reminder => BuildText(reminder), 
+                    _                        => throw new NotImplementedException(),
                 }
             };
         }
@@ -64,6 +46,11 @@ namespace NoofLab.VKBot.Core.Messages
                 Type = MessageEventType.SnowSnackbar,
                 Text = "Clicked!",
             };
+        }
+
+        private string BuildText(ReminderCommand reminder)
+        {
+            return reminder.ReminderText;
         }
     }
 }

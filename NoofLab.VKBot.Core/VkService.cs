@@ -138,7 +138,7 @@ namespace NoofLab.VKBot.Core
             {
                 if (update.Type == GroupUpdateType.MessageNew)
                 {
-                    var request = _requestParser.TryParseUserRequest(update.MessageNew?.Message);
+                    var request = _requestParser.TryParseUserRequest(update.MessageNew);
                     if (request == null)
                         continue;
 
