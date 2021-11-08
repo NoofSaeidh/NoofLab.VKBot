@@ -10,5 +10,7 @@ namespace NoofLab.VKBot.Core.Configuration
         public string AccessToken { get; init; }
         [Required]
         public ulong GroupId { get; init; }
+        [Required]
+        public string GroupName { get; init; }
     }
 }
